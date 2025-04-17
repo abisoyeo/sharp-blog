@@ -1,0 +1,39 @@
+@SharpBlog_HostAddress = https://localhost:7030
+
+POST {{SharpBlog_HostAddress}}/api/blogposts
+Content-Type: application/json
+
+{
+  "title": "Blog 1",
+  "content": "Random blog content",
+  "author": "Mr Boye",
+  "category": "General",
+  "tags": "life tips"
+}
+
+###
+
+GET {{SharpBlog_HostAddress}}/api/blogposts
+
+###
+
+GET {{SharpBlog_HostAddress}}/api/blogposts/1
+
+###
+
+DELETE {{SharpBlog_HostAddress}}/api/blogposts/2
+
+###
+
+PUT {{SharpBlog_HostAddress}}/api/blogposts/1
+Content-Type: application/json
+
+{
+  "title": "Blog First",
+  "content": "Random blog content",
+  "author": "Mr Boye",
+  "category": "General",
+  "tags": "life tips grwm"
+}
+
+###
