@@ -5,15 +5,16 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using SharpBlog.Models;
+using SharpBlog.Data;
+
 
 #nullable disable
 
 namespace SharpBlog.Migrations
 {
     [DbContext(typeof(BlogDbContext))]
-    [Migration("20250416230102_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20250416233155_UpdateBlogPost_UpdatedAtNullable")]
+    partial class UpdateBlogPost_UpdatedAtNullable
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -55,6 +56,9 @@ namespace SharpBlog.Migrations
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 

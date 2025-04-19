@@ -5,7 +5,9 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using SharpBlog.Data;
 using SharpBlog.Models;
+using SharpBlog.Models.DTOs;
 
 namespace SharpBlog.Controllers
 {
@@ -22,14 +24,32 @@ namespace SharpBlog.Controllers
 
         // GET: api/BlogPosts
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<BlogPost>>> GetBlogPosts()
+        public async Task<ActionResult<IEnumerable<BlogPostResponseDTO>>> GetBlogPosts()
         {
-            return await _context.BlogPosts.ToListAsync();
+            var data = await _context.BlogPosts.ToListAsync();
+
+            if (data == null || !data.Any())
+            {
+                return NotFound("No blog posts found.");
+            }
+
+            var blogPosts = data.Select(blogPost => new BlogPostResponseDTO
+            {
+                Title = blogPost.Title,
+                Content = blogPost.Content,
+                AuthorName = blogPost.Author.Name,
+                Tags = blogPost.Tags,
+                Category = blogPost.Category,
+                CreatedAt = blogPost.CreatedAt,
+                UpdatedAt = blogPost.UpdatedAt
+            }).ToList();
+
+            return Ok(blogPosts);
         }
 
         // GET: api/BlogPosts/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<BlogPost>> GetBlogPost(int id)
+        public async Task<ActionResult<BlogPostResponseDTO>> GetBlogPost(int id)
         {
             var blogPost = await _context.BlogPosts.FindAsync(id);
 
@@ -38,14 +58,34 @@ namespace SharpBlog.Controllers
                 return NotFound();
             }
 
-            return blogPost;
+            var blogPostResponse = new BlogPostResponseDTO
+            {
+                Title = blogPost.Title,
+                Content = blogPost.Content,
+                AuthorName = blogPost.Author.Name,
+                Tags = blogPost.Tags,
+                Category = blogPost.Category
+            };
+
+            return blogPostResponse;
         }
 
         // PUT: api/BlogPosts/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutBlogPost(int id, BlogPostDTO blogPost)
+        public async Task<IActionResult> PutBlogPost(int id, BlogPostDTO blogPostDto)
         {
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var author = await _context.Authors.FindAsync(blogPostDto.AuthorId);
+
+            if (author == null)
+            {
+                return NotFound($"Author with ID {blogPostDto.AuthorId} not found.");
+            }
 
             var updateBlogPost = await _context.BlogPosts.FindAsync(id);
 
@@ -54,11 +94,11 @@ namespace SharpBlog.Controllers
                 return BadRequest();
             }
 
-            updateBlogPost.Author = blogPost.Author;
-            updateBlogPost.Category = blogPost.Category;
-            updateBlogPost.Content = blogPost.Content;
-            updateBlogPost.Tags = blogPost.Tags;
-            updateBlogPost.Title = blogPost.Title;
+            updateBlogPost.Author = author;
+            updateBlogPost.Category = blogPostDto.Category;
+            updateBlogPost.Content = blogPostDto.Content;
+            updateBlogPost.Tags = blogPostDto.Tags;
+            updateBlogPost.Title = blogPostDto.Title;
             updateBlogPost.UpdatedAt = DateTime.UtcNow;
 
             _context.Entry(updateBlogPost).State = EntityState.Modified;
@@ -83,24 +123,42 @@ namespace SharpBlog.Controllers
         }
 
         // POST: api/BlogPosts
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<BlogPost>> PostBlogPost(BlogPostDTO blogPost)
+        public async Task<ActionResult<BlogPost>> PostBlogPost(BlogPostDTO blogPostDto)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var author = await _context.Authors.FindAsync(blogPostDto.AuthorId);
+            if (author == null)
+            {
+                return NotFound($"Author with ID {blogPostDto.AuthorId} not found.");
+            }
+
+
             var newBlogPost = new BlogPost
             {
-                Title = blogPost.Title,
-                Content = blogPost.Content,
-                Author = blogPost.Author,
-                Category = blogPost.Category,
-                Tags = blogPost.Tags,
+                Title = blogPostDto.Title,
+                Content = blogPostDto.Content,
+                Author = author,
+                Category = blogPostDto.Category,
+                Tags = blogPostDto.Tags,
                 CreatedAt = DateTime.UtcNow
             };
 
             await _context.BlogPosts.AddAsync(newBlogPost);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetBlogPost), new { id = newBlogPost.Id }, newBlogPost);
+            return CreatedAtAction(nameof(GetBlogPost), new { id = newBlogPost.Id }, new BlogPostResponseDTO
+            {
+                Title = newBlogPost.Title,
+                Content = newBlogPost.Content,
+                AuthorName = author.Name,
+                Tags = newBlogPost.Tags,
+                Category = newBlogPost.Category
+            });
         }
 
         // DELETE: api/BlogPosts/5
