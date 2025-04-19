@@ -3,13 +3,13 @@
 POST {{SharpBlog_HostAddress}}/api/blogposts
 Content-Type: application/json
 
-{
-  "title": "Blog 1",
-  "content": "Random blog content",
-  "author": "Mr Boye",
-  "category": "General",
-  "tags": "life tips"
-}
+  {
+    "title": "Asynchronous Programming in C#",
+    "content": "Using async and await properly can greatly improve app performance...",
+    "category": "Concurrency",
+    "tags": "async",
+    "authorId": 2
+  }
 
 ###
 
@@ -17,23 +17,23 @@ GET {{SharpBlog_HostAddress}}/api/blogposts
 
 ###
 
-GET {{SharpBlog_HostAddress}}/api/blogposts/1
+GET {{SharpBlog_HostAddress}}/api/blogposts/12
 
 ###
 
-DELETE {{SharpBlog_HostAddress}}/api/blogposts/2
+DELETE {{SharpBlog_HostAddress}}/api/blogposts/12
 
 ###
 
-PUT {{SharpBlog_HostAddress}}/api/blogposts/1
+PUT {{SharpBlog_HostAddress}}/api/blogposts/10
 Content-Type: application/json
 
 {
-  "title": "Blog First",
-  "content": "Random blog content",
-  "author": "Mr Boye",
-  "category": "General",
-  "tags": "life tips grwm"
-}
+    "title": "Asynchronous Programming in C#",
+    "content": "Using async and await properly can greatly improve app performance...",
+    "category": "Concuuuurrency",
+    "tags": "async",
+    "authorId": 2
+  }
 
 ###

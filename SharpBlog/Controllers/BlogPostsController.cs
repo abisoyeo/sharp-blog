@@ -1,11 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using SharpBlog.Data;
+﻿using Microsoft.AspNetCore.Mvc;
+using SharpBlog.Data.Repository;
 using SharpBlog.Models;
 using SharpBlog.Models.DTOs;
 
@@ -15,34 +9,23 @@ namespace SharpBlog.Controllers
     [ApiController]
     public class BlogPostsController : ControllerBase
     {
-        private readonly BlogDbContext _context;
+        private readonly IBlogRepo _repo;
 
-        public BlogPostsController(BlogDbContext context)
+        public BlogPostsController(IBlogRepo repo)
         {
-            _context = context;
+            _repo = repo;
         }
 
         // GET: api/BlogPosts
         [HttpGet]
         public async Task<ActionResult<IEnumerable<BlogPostResponseDTO>>> GetBlogPosts()
         {
-            var data = await _context.BlogPosts.ToListAsync();
+            var blogPosts = await _repo.GetAllPosts();
 
-            if (data == null || !data.Any())
+            if (blogPosts == null)
             {
                 return NotFound("No blog posts found.");
             }
-
-            var blogPosts = data.Select(blogPost => new BlogPostResponseDTO
-            {
-                Title = blogPost.Title,
-                Content = blogPost.Content,
-                AuthorName = blogPost.Author.Name,
-                Tags = blogPost.Tags,
-                Category = blogPost.Category,
-                CreatedAt = blogPost.CreatedAt,
-                UpdatedAt = blogPost.UpdatedAt
-            }).ToList();
 
             return Ok(blogPosts);
         }
@@ -51,23 +34,13 @@ namespace SharpBlog.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<BlogPostResponseDTO>> GetBlogPost(int id)
         {
-            var blogPost = await _context.BlogPosts.FindAsync(id);
-
+            var blogPost = await _repo.GetPost(id);
             if (blogPost == null)
             {
-                return NotFound();
+                return NotFound($"Blog post with ID {id} not found.");
             }
 
-            var blogPostResponse = new BlogPostResponseDTO
-            {
-                Title = blogPost.Title,
-                Content = blogPost.Content,
-                AuthorName = blogPost.Author.Name,
-                Tags = blogPost.Tags,
-                Category = blogPost.Category
-            };
-
-            return blogPostResponse;
+            return Ok(blogPost);
         }
 
         // PUT: api/BlogPosts/5
@@ -80,43 +53,13 @@ namespace SharpBlog.Controllers
                 return BadRequest(ModelState);
             }
 
-            var author = await _context.Authors.FindAsync(blogPostDto.AuthorId);
-
-            if (author == null)
-            {
-                return NotFound($"Author with ID {blogPostDto.AuthorId} not found.");
-            }
-
-            var updateBlogPost = await _context.BlogPosts.FindAsync(id);
-
-            if (id != updateBlogPost.Id)
-            {
-                return BadRequest();
-            }
-
-            updateBlogPost.Author = author;
-            updateBlogPost.Category = blogPostDto.Category;
-            updateBlogPost.Content = blogPostDto.Content;
-            updateBlogPost.Tags = blogPostDto.Tags;
-            updateBlogPost.Title = blogPostDto.Title;
-            updateBlogPost.UpdatedAt = DateTime.UtcNow;
-
-            _context.Entry(updateBlogPost).State = EntityState.Modified;
-
             try
             {
-                await _context.SaveChangesAsync();
+                await _repo.UpdatePost(id, blogPostDto);
             }
-            catch (DbUpdateConcurrencyException)
+            catch (Exception ex)
             {
-                if (!BlogPostExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                return BadRequest(ex.Message);
             }
 
             return NoContent();
@@ -131,55 +74,24 @@ namespace SharpBlog.Controllers
                 return BadRequest(ModelState);
             }
 
-            var author = await _context.Authors.FindAsync(blogPostDto.AuthorId);
-            if (author == null)
-            {
-                return NotFound($"Author with ID {blogPostDto.AuthorId} not found.");
-            }
+            var response = await _repo.CreatePost(blogPostDto);
 
 
-            var newBlogPost = new BlogPost
-            {
-                Title = blogPostDto.Title,
-                Content = blogPostDto.Content,
-                Author = author,
-                Category = blogPostDto.Category,
-                Tags = blogPostDto.Tags,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            await _context.BlogPosts.AddAsync(newBlogPost);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetBlogPost), new { id = newBlogPost.Id }, new BlogPostResponseDTO
-            {
-                Title = newBlogPost.Title,
-                Content = newBlogPost.Content,
-                AuthorName = author.Name,
-                Tags = newBlogPost.Tags,
-                Category = newBlogPost.Category
-            });
+            return CreatedAtAction(nameof(GetBlogPost), new { id = response.Id }, response);
         }
 
         // DELETE: api/BlogPosts/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteBlogPost(int id)
         {
-            var blogPost = await _context.BlogPosts.FindAsync(id);
-            if (blogPost == null)
+            var blogPost = await _repo.DeletePost(id);
+            if (blogPost == false)
             {
-                return NotFound();
+                return NotFound($"Blog post with ID {id} not found.");
             }
-
-            _context.BlogPosts.Remove(blogPost);
-            await _context.SaveChangesAsync();
 
             return NoContent();
         }
 
-        private bool BlogPostExists(int id)
-        {
-            return _context.BlogPosts.Any(e => e.Id == id);
-        }
     }
 }
