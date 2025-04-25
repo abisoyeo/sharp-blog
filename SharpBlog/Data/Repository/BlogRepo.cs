@@ -14,16 +14,22 @@ public class BlogRepo : IBlogRepo
     }
 
 
-    public async Task<IEnumerable<BlogPostResponseDTO>> GetAllPosts()
+    public async Task<IEnumerable<BlogPostResponseDTO>> GetAllPosts(string? author, string? tag, string? category)
     {
-        var data = await _context.BlogPosts
-         .Include(bp => bp.Author)
-         .ToListAsync();
+        var query = _context.BlogPosts
+                           .Include(bp => bp.Author)
+                           .AsQueryable();
 
-        if (data == null || !data.Any())
-        {
-            return null;
-        }
+        if (!string.IsNullOrEmpty(author))
+            query = query.Where(bp => bp.Author.Name == author);
+
+        if (!string.IsNullOrEmpty(tag))
+            query = query.Where(bp => bp.Tags == tag); 
+        
+        if (!string.IsNullOrEmpty(category))
+            query = query.Where(bp => bp.Category == category);
+
+        var data = await query.ToListAsync();
 
         return data.Select(blogPost => new BlogPostResponseDTO
         {
@@ -134,20 +140,4 @@ public class BlogRepo : IBlogRepo
 
         return true;
     }
-
-    public Task<IEnumerable<BlogPostResponseDTO>> GetPostsByAuthor(int authorId, string authorName)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<IEnumerable<BlogPostResponseDTO>> GetPostsByCategory(string category)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<IEnumerable<BlogPostResponseDTO>> GetPostsByTag(string tag)
-    {
-        throw new NotImplementedException();
-    }
-
 }

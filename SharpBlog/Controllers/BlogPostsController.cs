@@ -18,9 +18,12 @@ namespace SharpBlog.Controllers
 
         // GET: api/BlogPosts
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<BlogPostResponseDTO>>> GetBlogPosts()
+        public async Task<ActionResult<IEnumerable<BlogPostResponseDTO>>> GetBlogPosts(
+            [FromQuery] string? author,
+            [FromQuery] string? tag,
+            [FromQuery] string? category)
         {
-            var blogPosts = await _repo.GetAllPosts();
+            var blogPosts = await _repo.GetAllPosts(author, tag, category);
 
             if (blogPosts == null)
             {
@@ -45,7 +48,7 @@ namespace SharpBlog.Controllers
 
         // PUT: api/BlogPosts/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutBlogPost(int id, BlogPostDTO blogPostDto)
+        public async Task<IActionResult> EditBlogPost(int id, BlogPostDTO blogPostDto)
         {
 
             if (!ModelState.IsValid)
@@ -67,7 +70,7 @@ namespace SharpBlog.Controllers
 
         // POST: api/BlogPosts
         [HttpPost]
-        public async Task<ActionResult<BlogPost>> PostBlogPost(BlogPostDTO blogPostDto)
+        public async Task<ActionResult<BlogPost>> CreateBlogPost(BlogPostDTO blogPostDto)
         {
             if (!ModelState.IsValid)
             {
