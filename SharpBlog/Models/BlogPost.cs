@@ -11,8 +11,8 @@ namespace SharpBlog.Models
         public string Tags { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
-        public int AuthorId { get; set; }
-        public Author Author { get; set; }
+        public int UserId { get; set; }
+        public User User { get; set; }
 
     }
 }

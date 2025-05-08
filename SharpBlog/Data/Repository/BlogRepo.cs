@@ -17,11 +17,11 @@ public class BlogRepo : IBlogRepo
     public async Task<IEnumerable<BlogPostResponseDTO>> GetAllPosts(string? author, string? tag, string? category)
     {
         var query = _context.BlogPosts
-                           .Include(bp => bp.Author)
+                           .Include(bp => bp.User)
                            .AsQueryable();
 
         if (!string.IsNullOrEmpty(author))
-            query = query.Where(bp => bp.Author.Name == author);
+            query = query.Where(bp => bp.User.Name == author);
 
         if (!string.IsNullOrEmpty(tag))
             query = query.Where(bp => bp.Tags == tag); 
@@ -36,7 +36,7 @@ public class BlogRepo : IBlogRepo
             Id = blogPost.Id,
             Title = blogPost.Title,
             Content = blogPost.Content,
-            AuthorName = blogPost.Author.Name,
+            AuthorName = blogPost.User.Name,
             Tags = blogPost.Tags,
             Category = blogPost.Category,
             CreatedAt = blogPost.CreatedAt,
@@ -47,7 +47,7 @@ public class BlogRepo : IBlogRepo
     public async Task<BlogPostResponseDTO> GetPost(int id)
     {
         var blogPost = await _context.BlogPosts
-        .Include(bp => bp.Author)
+        .Include(bp => bp.User)
         .FirstOrDefaultAsync(bp => bp.Id == id);
 
         if (blogPost == null) return null;
@@ -57,7 +57,7 @@ public class BlogRepo : IBlogRepo
             Id = blogPost.Id,
             Title = blogPost.Title,
             Content = blogPost.Content,
-            AuthorName = blogPost.Author.Name,
+            AuthorName = blogPost.User.Name,
             Tags = blogPost.Tags,
             Category = blogPost.Category
         };
@@ -65,7 +65,7 @@ public class BlogRepo : IBlogRepo
 
     public async Task<BlogPostResponseDTO> CreatePost(BlogPostDTO blogPostDto)
     {
-        var author = await _context.Authors.FindAsync(blogPostDto.AuthorId);
+        var author = await _context.Users.FindAsync(blogPostDto.AuthorId);
         if (author == null)
         {
             throw new ArgumentException($"Author with ID {blogPostDto.AuthorId} not found.");
@@ -76,7 +76,7 @@ public class BlogRepo : IBlogRepo
         {
             Title = blogPostDto.Title,
             Content = blogPostDto.Content,
-            Author = author,
+            User = author,
             Category = blogPostDto.Category,
             Tags = blogPostDto.Tags,
             CreatedAt = DateTime.UtcNow
@@ -100,7 +100,7 @@ public class BlogRepo : IBlogRepo
     public async Task UpdatePost(int id, BlogPostDTO blogPostDto)
     {
         var updateBlogPost = await _context.BlogPosts.FindAsync(id);
-        var author = await _context.Authors.FindAsync(blogPostDto.AuthorId);
+        var author = await _context.Users.FindAsync(blogPostDto.AuthorId);
 
         if (id != updateBlogPost.Id)
         {

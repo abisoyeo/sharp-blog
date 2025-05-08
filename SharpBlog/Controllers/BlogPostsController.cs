@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using SharpBlog.Data.Repository;
 using SharpBlog.Models;
 using SharpBlog.Models.DTOs;
@@ -18,6 +19,7 @@ namespace SharpBlog.Controllers
 
         // GET: api/BlogPosts
         [HttpGet]
+        [Authorize(Roles = "Admin, Author, Reader")] // All roles can read blog posts
         public async Task<ActionResult<IEnumerable<BlogPostResponseDTO>>> GetBlogPosts(
             [FromQuery] string? author,
             [FromQuery] string? tag,
@@ -35,6 +37,7 @@ namespace SharpBlog.Controllers
 
         // GET: api/BlogPosts/5
         [HttpGet("{id}")]
+        [Authorize(Roles = "Admin, Author, Reader")] // All roles can read blog posts
         public async Task<ActionResult<BlogPostResponseDTO>> GetBlogPost(int id)
         {
             var blogPost = await _repo.GetPost(id);
@@ -48,6 +51,7 @@ namespace SharpBlog.Controllers
 
         // PUT: api/BlogPosts/5
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin, Author")] // Only Admin and Author can edit blog posts
         public async Task<IActionResult> EditBlogPost(int id, BlogPostDTO blogPostDto)
         {
 
@@ -70,6 +74,7 @@ namespace SharpBlog.Controllers
 
         // POST: api/BlogPosts
         [HttpPost]
+        [Authorize(Roles = "Admin, Author")] // Only Admin and Author can create blog posts
         public async Task<ActionResult<BlogPost>> CreateBlogPost(BlogPostDTO blogPostDto)
         {
             if (!ModelState.IsValid)
@@ -85,6 +90,7 @@ namespace SharpBlog.Controllers
 
         // DELETE: api/BlogPosts/5
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")] // Only Admin can delete blog posts
         public async Task<IActionResult> DeleteBlogPost(int id)
         {
             var blogPost = await _repo.DeletePost(id);

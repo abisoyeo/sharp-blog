@@ -12,29 +12,47 @@ public class BlogDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        modelBuilder.Entity<Author>().HasData(
-            new Author
-            {
-                Id = 1,
-                Name = "Alice",
-                Email = "alice@example.com",
-                CreatedAt = DateTime.UtcNow,
-                Bio = "Tech writer and blogger",
-                ProfilePictureUrl = "https://example.com/images/alice.jpg"
-            },
-            new Author
-            {
-                Id = 2,
-                Name = "Bob",
-                Email = "bob@example.com",
-                CreatedAt = DateTime.UtcNow,
-                Bio = "DevOps expert",
-                ProfilePictureUrl = "https://example.com/images/bob.jpg"
-            }
-        );
+        modelBuilder.Entity<User>().HasData(
+        new User
+        {
+            Id = 1,
+            Name = "Alice",
+            Email = "alice@example.com",
+            CreatedAt = DateTime.UtcNow,
+            Bio = "Tech writer and blogger",
+            ProfilePictureUrl = "https://example.com/images/alice.jpg",
+            PasswordHash = "placeholder",
+            Role = Roles.Role.Admin
+        },
+        new User
+        {
+            Id = 2,
+            Name = "Bob",
+            Email = "bob@example.com",
+            CreatedAt = DateTime.UtcNow,
+            Bio = "DevOps expert",
+            ProfilePictureUrl = "https://example.com/images/bob.jpg",
+            PasswordHash = "placeholder",
+            Role = Roles.Role.Author
+        },
+        new User
+        {
+            Id = 3,
+            Name = "John",
+            Email = "john@example.com",
+            CreatedAt = DateTime.UtcNow,
+            Bio = "Cloud expert",
+            ProfilePictureUrl = "https://example.com/images/john.jpg",
+            PasswordHash = "placeholder",
+            Role = Roles.Role.Reader
+        }
+    );
+
+        // Store roles in User Db as a string instead of enum numbers
+        modelBuilder.Entity<User>().Property(i => i.Role).HasConversion<string>();
     }
 
     public DbSet<BlogPost> BlogPosts { get; set; }
-    public DbSet<Author> Authors { get; set; }
+    public DbSet<User> Users { get; set; }
 }
 
