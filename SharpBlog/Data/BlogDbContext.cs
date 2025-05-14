@@ -50,6 +50,9 @@ public class BlogDbContext : DbContext
 
         // Store roles in User Db as a string instead of enum numbers
         modelBuilder.Entity<User>().Property(i => i.Role).HasConversion<string>();
+
+        // Ensure user emails are unique 
+        modelBuilder.Entity<User>().HasIndex(u => u.Email).IsUnique();
     }
 
     public DbSet<BlogPost> BlogPosts { get; set; }

@@ -1,4 +1,5 @@
-﻿using SharpBlog.Models;
+﻿using Microsoft.EntityFrameworkCore;
+using SharpBlog.Models;
 
 namespace SharpBlog.Data.Repository
 {
@@ -11,31 +12,37 @@ namespace SharpBlog.Data.Repository
             _db = db;
         }
 
-        public void Create(User user)
+        public async Task<IEnumerable<User>> GetAllUsers()
         {
-            _db.Users.Add(user);
-            Save();
+            return await _db.Users.ToListAsync();
         }
 
-        public void Delete(User user)
+        public async Task<User> GetUserByEmail(string email)
+        {
+            return await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
+        }
+
+        public async Task<User> GetUserById(int id)
+        {
+            return await _db.Users.FindAsync(id);
+        }
+
+        public async Task CreateUser(User user)
+        {
+            await _db.Users.AddAsync(user);
+            await _db.SaveChangesAsync();
+        }
+
+        public async Task UpdateUser(User user)
+        {
+            _db.Users.Update(user);
+            await _db.SaveChangesAsync();
+        }
+
+        public async Task DeleteUser(User user)
         {
             _db.Users.Remove(user);
-            Save();
-        }
-
-        public User GetUser(string username)
-        {
-            return _db.Users.FirstOrDefault(u => u.Email == username);
-        }
-
-        public IEnumerable<User> GetAll()
-        {
-            return _db.Users.ToList();
-        }
-
-        public void Save()
-        {
-            _db.SaveChanges();
+            await _db.SaveChangesAsync();
         }
     }
 }

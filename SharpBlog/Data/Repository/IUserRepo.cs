@@ -4,9 +4,10 @@ namespace SharpBlog.Data.Repository;
 
 public interface IUserRepo
 {
-    void Create(User user);
-    void Delete(User user);
-    User GetUser(string username);
-    IEnumerable<User> GetAll();
-    void Save();
+    Task<IEnumerable<User>> GetAllUsers();
+    Task<User> GetUserByEmail(string email);
+    Task<User> GetUserById(int id);
+    Task UpdateUser(User user);
+    Task CreateUser(User user);
+    Task DeleteUser(User user);
 }
