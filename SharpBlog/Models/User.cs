@@ -1,6 +1,4 @@
-﻿using static SharpBlog.Models.Roles;
-
-namespace SharpBlog.Models;
+﻿namespace SharpBlog.Models;
 
 public class User
 {

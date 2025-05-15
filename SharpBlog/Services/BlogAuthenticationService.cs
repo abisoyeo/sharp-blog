@@ -42,7 +42,7 @@ public class BlogAuthenticationService : IBlogAuthenticationService
             CreatedAt = DateTime.UtcNow,
             Bio = userDto.Bio,
             ProfilePictureUrl = userDto.ProfilePictureUrl,
-            Role = Roles.Role.Author
+            Role = Role.Author
         };
 
         await _userRepo.CreateUser(user);

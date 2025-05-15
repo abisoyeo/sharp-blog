@@ -22,7 +22,7 @@ public class BlogDbContext : DbContext
             Bio = "Tech writer and blogger",
             ProfilePictureUrl = "https://example.com/images/alice.jpg",
             PasswordHash = "placeholder",
-            Role = Roles.Role.Admin
+            Role = Role.Admin
         },
         new User
         {
@@ -33,7 +33,7 @@ public class BlogDbContext : DbContext
             Bio = "DevOps expert",
             ProfilePictureUrl = "https://example.com/images/bob.jpg",
             PasswordHash = "placeholder",
-            Role = Roles.Role.Author
+            Role = Role.Author
         },
         new User
         {
@@ -44,7 +44,7 @@ public class BlogDbContext : DbContext
             Bio = "Cloud expert",
             ProfilePictureUrl = "https://example.com/images/john.jpg",
             PasswordHash = "placeholder",
-            Role = Roles.Role.Reader
+            Role = Role.Reader
         }
     );
 
