@@ -5,7 +5,7 @@ namespace SharpBlog.Services;
 
 public interface IBlogAuthenticationService
 {
-    Task<User> RegisterUser(RegisterUserDTO registerDTO);
+    Task<UserResponseDTO> RegisterUser(RegisterUserDTO registerDTO);
     Task<string> LoginUser(LoginDTO loginDTO);
     Task<UserResponseDTO> UpdateUserDetails(int id, UpdateUserDTO userDto);
 

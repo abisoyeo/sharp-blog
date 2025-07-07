@@ -23,7 +23,7 @@ public class BlogAuthenticationService : IBlogAuthenticationService
         _userRepo = userRepo;
     }
 
-    public async Task<User> RegisterUser(RegisterUserDTO userDto)
+    public async Task<UserResponseDTO> RegisterUser(RegisterUserDTO userDto)
     {
         var existingUser = await _userRepo.GetUserByEmail(userDto.Email.Trim().ToLower());
 
@@ -46,7 +46,14 @@ public class BlogAuthenticationService : IBlogAuthenticationService
         };
 
         await _userRepo.CreateUser(user);
-        return user;
+        return new UserResponseDTO
+        {
+            Id = user.Id,
+            Name = user.Name,
+            Email = user.Email,
+            Bio = user.Bio,
+            ProfilePictureUrl = user.ProfilePictureUrl,
+        };
     }
 
     public async Task<string> LoginUser(LoginDTO loginDTO)
@@ -60,21 +67,25 @@ public class BlogAuthenticationService : IBlogAuthenticationService
 
         return GenerateToken(user);  // Return the generated token if credentials are valid
     }
-
     public async Task<UserResponseDTO> UpdateUserDetails(int id, UpdateUserDTO userDto)
     {
         var user = await _userRepo.GetUserById(id);
         if (user == null) return null;
 
-        var existingUser = await _userRepo.GetUserByEmail(userDto.Email.Trim().ToLower());
-
-        if (existingUser != null)
+        if (!string.IsNullOrWhiteSpace(userDto.Email))
         {
-            throw new ArgumentException("A user with this email already exists.");
+            var email = userDto.Email.Trim().ToLower();
+
+            var existingUser = await _userRepo.GetUserByEmail(email);
+            if (existingUser != null && existingUser.Id != id) // prevent conflict with same user
+            {
+                throw new ArgumentException("A user with this email already exists.");
+            }
+
+            user.Email = email;
         }
 
         user.Name = userDto.Name ?? user.Name;
-        user.Email = userDto.Email.Trim().ToLower() ?? user.Email;
         user.Bio = userDto.Bio ?? user.Bio;
         user.ProfilePictureUrl = userDto.ProfilePictureUrl ?? user.ProfilePictureUrl;
 
@@ -94,6 +105,7 @@ public class BlogAuthenticationService : IBlogAuthenticationService
             ProfilePictureUrl = user.ProfilePictureUrl,
         };
     }
+
 
 
     public string GenerateToken(User user)

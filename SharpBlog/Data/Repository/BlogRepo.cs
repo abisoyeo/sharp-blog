@@ -1,9 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using SharpBlog.Models;
+using SharpBlog.Data.Repository;
+using SharpBlog.Data;
 using SharpBlog.Models.DTOs;
-using System.Globalization;
-
-namespace SharpBlog.Data.Repository;
+using SharpBlog.Models;
 
 public class BlogRepo : IBlogRepo
 {
@@ -14,7 +13,6 @@ public class BlogRepo : IBlogRepo
         _context = context;
     }
 
-
     public async Task<PagedResult<BlogPostResponseDTO>> GetAllPosts(
         string? author, string? tag, string? category, string? search,
         string? sortBy, bool isDescending, int pageNumber, int pageSize)
@@ -22,18 +20,18 @@ public class BlogRepo : IBlogRepo
         var query = _context.BlogPosts
             .AsNoTracking()
             .Include(bp => bp.User)
+            .Include(bp => bp.Tags)
             .AsQueryable();
 
-        if (!string.IsNullOrEmpty(author))
+        if (!string.IsNullOrEmpty(author)) 
             query = query.Where(bp => bp.User.Name == author);
 
         if (!string.IsNullOrEmpty(tag))
-            query = query.Where(bp => bp.Tags == tag);
+            query = query.Where(bp => bp.Tags.Any(t => t.Name == tag));
 
         if (!string.IsNullOrEmpty(category))
             query = query.Where(bp => bp.Category == category);
 
-        // Full-text search
         if (!string.IsNullOrEmpty(search))
         {
             query = query.Where(bp =>
@@ -42,7 +40,6 @@ public class BlogRepo : IBlogRepo
                 EF.Functions.Like(bp.Category, $"%{search}%"));
         }
 
-        // Sorting
         if (!string.IsNullOrEmpty(sortBy))
         {
             query = sortBy.ToLower() switch
@@ -50,23 +47,18 @@ public class BlogRepo : IBlogRepo
                 "title" => isDescending ? query.OrderByDescending(p => p.Title) : query.OrderBy(p => p.Title),
                 "createdat" => isDescending ? query.OrderByDescending(p => p.CreatedAt) : query.OrderBy(p => p.CreatedAt),
                 "author" => isDescending ? query.OrderByDescending(p => p.User.Name) : query.OrderBy(p => p.User.Name),
-                _ => query.OrderByDescending(p => p.CreatedAt) // default fallback
+                _ => query.OrderByDescending(p => p.CreatedAt)
             };
         }
         else
         {
-            query = query.OrderByDescending(p => p.CreatedAt); // default sort
+            query = query.OrderByDescending(p => p.CreatedAt);
         }
 
-        // pagination
         var totalItems = await query.CountAsync();
+        var skipAmount = pageSize * (pageNumber - 1);
 
-        int skipAmount = pageSize * (pageNumber - 1);
-
-        var posts = await query
-            .Skip(skipAmount)
-            .Take(pageSize)
-            .ToListAsync();
+        var posts = await query.Skip(skipAmount).Take(pageSize).ToListAsync();
 
         var postDTOs = posts.Select(bp => new BlogPostResponseDTO
         {
@@ -74,7 +66,7 @@ public class BlogRepo : IBlogRepo
             Title = bp.Title,
             Content = bp.Content,
             AuthorName = bp.User.Name,
-            Tags = bp.Tags,
+            Tags = bp.Tags.Select(t => t.Name).ToList(),
             Category = bp.Category,
             CreatedAt = bp.CreatedAt,
             UpdatedAt = bp.UpdatedAt
@@ -94,6 +86,7 @@ public class BlogRepo : IBlogRepo
         var blogPost = await _context.BlogPosts
             .AsNoTracking()
             .Include(bp => bp.User)
+            .Include(bp => bp.Tags)
             .FirstOrDefaultAsync(bp => bp.Id == id);
 
         if (blogPost == null) return null;
@@ -104,7 +97,7 @@ public class BlogRepo : IBlogRepo
             Title = blogPost.Title,
             Content = blogPost.Content,
             AuthorName = blogPost.User.Name,
-            Tags = blogPost.Tags,
+            Tags = blogPost.Tags.Select(t => t.Name).ToList(),
             Category = blogPost.Category,
             CreatedAt = blogPost.CreatedAt,
             UpdatedAt = blogPost.UpdatedAt
@@ -115,9 +108,21 @@ public class BlogRepo : IBlogRepo
     {
         var author = await _context.Users.FindAsync(userId);
         if (author == null)
-        {
             throw new ArgumentException($"User with ID {userId} not found.");
+
+        var tagEntities = new List<Tag>();
+        foreach (var tagName in blogPostDto.Tags.Distinct())
+        {
+            var tag = await _context.Tags.FirstOrDefaultAsync(t => t.Name == tagName);
+            if (tag == null)
+            {
+                tag = new Tag { Name = tagName };
+                _context.Tags.Add(tag);
+            }
+            tagEntities.Add(tag);
         }
+
+        await _context.SaveChangesAsync();
 
         var newBlogPost = new BlogPost
         {
@@ -125,11 +130,11 @@ public class BlogRepo : IBlogRepo
             Content = blogPostDto.Content,
             User = author,
             Category = blogPostDto.Category,
-            Tags = blogPostDto.Tags,
+            Tags = tagEntities,
             CreatedAt = DateTime.UtcNow
         };
 
-        await _context.BlogPosts.AddAsync(newBlogPost);
+        _context.BlogPosts.Add(newBlogPost);
         await _context.SaveChangesAsync();
 
         return new BlogPostResponseDTO
@@ -138,45 +143,54 @@ public class BlogRepo : IBlogRepo
             Title = newBlogPost.Title,
             Content = newBlogPost.Content,
             AuthorName = author.Name,
-            Tags = newBlogPost.Tags,
+            Tags = tagEntities.Select(t => t.Name).ToList(),
             Category = newBlogPost.Category,
             CreatedAt = newBlogPost.CreatedAt
         };
     }
 
-    // TODO: Refactor to make use of exceptions instead of bool
     public async Task<bool> UpdatePost(int postId, BlogPostDTO blogPostDto, int userId)
     {
-        var updateBlogPost = await _context.BlogPosts.FindAsync(postId);
+        var blogPost = await _context.BlogPosts
+            .Include(bp => bp.Tags)
+            .FirstOrDefaultAsync(bp => bp.Id == postId);
 
-        if (updateBlogPost == null)
+        if (blogPost == null)
             throw new ArgumentException($"Blog post with ID {postId} not found.");
 
-        // Optional: Admins can update any post; authors only their own
-        if (updateBlogPost.UserId != userId)
-            //throw new ArgumentException($"Blog post with ID {postId} not found.");
-            return false; // Forbidden
+        if (blogPost.UserId != userId)
+            return false;
 
-        updateBlogPost.Title = blogPostDto.Title;
-        updateBlogPost.Content = blogPostDto.Content;
-        updateBlogPost.Category = blogPostDto.Category;
-        updateBlogPost.Tags = blogPostDto.Tags;
-        updateBlogPost.UpdatedAt = DateTime.UtcNow;
+        blogPost.Title = blogPostDto.Title;
+        blogPost.Content = blogPostDto.Content;
+        blogPost.Category = blogPostDto.Category;
+        blogPost.UpdatedAt = DateTime.UtcNow;
 
-        _context.BlogPosts.Update(updateBlogPost);
+        // Manage tags
+        blogPost.Tags.Clear();
+        foreach (var tagName in blogPostDto.Tags.Distinct())
+        {
+            var tag = await _context.Tags.FirstOrDefaultAsync(t => t.Name == tagName);
+            if (tag == null)
+            {
+                tag = new Tag { Name = tagName };
+                _context.Tags.Add(tag);
+                await _context.SaveChangesAsync();
+            }
+            blogPost.Tags.Add(tag);
+        }
+
+        _context.BlogPosts.Update(blogPost);
         await _context.SaveChangesAsync();
 
         return true;
     }
 
-    // TODO: Refactor to make use of exceptions instead of bool
     public async Task<bool> DeletePost(int id)
     {
         var blogPost = await _context.BlogPosts.FindAsync(id);
         if (blogPost == null)
-        {
             return false;
-        }
 
         _context.BlogPosts.Remove(blogPost);
         await _context.SaveChangesAsync();
@@ -188,6 +202,7 @@ public class BlogRepo : IBlogRepo
     {
         var blogPosts = await _context.BlogPosts
             .Include(bp => bp.User)
+            .Include(bp => bp.Tags)
             .Where(bp => bp.UserId == authorId)
             .ToListAsync();
 
@@ -197,7 +212,7 @@ public class BlogRepo : IBlogRepo
             Title = blogPost.Title,
             Content = blogPost.Content,
             AuthorName = blogPost.User.Name,
-            Tags = blogPost.Tags,
+            Tags = blogPost.Tags.Select(t => t.Name).ToList(),
             Category = blogPost.Category,
             CreatedAt = blogPost.CreatedAt,
             UpdatedAt = blogPost.UpdatedAt
@@ -208,6 +223,7 @@ public class BlogRepo : IBlogRepo
     {
         var blogPost = await _context.BlogPosts
             .Include(bp => bp.User)
+            .Include(bp => bp.Tags)
             .FirstOrDefaultAsync(bp => bp.Id == blogId && bp.UserId == userId);
 
         if (blogPost == null) return null;
@@ -218,11 +234,10 @@ public class BlogRepo : IBlogRepo
             Title = blogPost.Title,
             Content = blogPost.Content,
             AuthorName = blogPost.User.Name,
-            Tags = blogPost.Tags,
+            Tags = blogPost.Tags.Select(t => t.Name).ToList(),
             Category = blogPost.Category,
             CreatedAt = blogPost.CreatedAt,
             UpdatedAt = blogPost.UpdatedAt
         };
     }
-
 }
