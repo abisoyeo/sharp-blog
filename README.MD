@@ -65,10 +65,9 @@ SharpBlog/
 
 ### Installation
 
-```bash
-git clone [https://github.com/your-username/SharpBlog.git](https://github.com/your-username/SharpBlog.git)
-cd SharpBlog
-````
+git clone [https://github.com/abisoyeo/sharp-blog.git](https://github.com/abisoyeo/sharp-blog.git)
+cd sharp-blog
+
 
 ### Configure Database Connection
 
